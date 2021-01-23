@@ -56,7 +56,7 @@ mongoClient.connect(async function (err, client) {
 
     const emptyProduct = await productsCollection.findOne({
       id: { $nin: returnedProductsCache.map((product) => product.id) },
-      lastUpdate: { $exists: true },
+      lastUpdate: { $exists: false },
     });
     if (emptyProduct) {
       returnedProductsCache.push({
