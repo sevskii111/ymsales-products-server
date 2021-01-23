@@ -102,6 +102,10 @@ mongoClient.connect(async function (err, client) {
     res.status(200).send("");
   });
 
+  app.get("/codes", (req, res) => {
+    res.json(codes);
+  });
+
   app.listen(config.port, (err) => {
     if (err) {
       console.error(err);
