@@ -6,7 +6,9 @@ const codes = require("./codes.js");
 const config = {
   cachedProductTimeout: process.env.cachedProductTimeout || 60000,
   port: process.env.PORT || 1338,
-  mongodbURI: process.env.mongodbURI || "mongodb://localhost:27017/",
+  mongodbURI:
+    process.env.mongodbURI ||
+    "mongodb+srv://admin:ymsalesadmin@cluster0.zqbcv.mongodb.net/ymsales?retryWrites=true&w=majority", //"mongodb://localhost:27017/",
 };
 
 const mongoClient = new MongoClient(config.mongodbURI, {
@@ -54,7 +56,7 @@ mongoClient.connect(async function (err, client) {
 
     const emptyProduct = await productsCollection.findOne({
       id: { $nin: returnedProductsCache.map((product) => product.id) },
-      lastUpdate: undefined,
+      lastUpdate: { $exists: true },
     });
     if (emptyProduct) {
       returnedProductsCache.push({
@@ -86,7 +88,7 @@ mongoClient.connect(async function (err, client) {
     res.send(await getNextProduct());
     await productsCollection.updateOne(
       { id },
-      { $set: { id, name, category, img, price } }
+      { $set: { id, name, category, img, price, lastUpdate: Date.now() } }
     );
   });
 
