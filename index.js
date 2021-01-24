@@ -6,9 +6,7 @@ const codes = require("./codes.js");
 const config = {
   cachedProductTimeout: process.env.cachedProductTimeout || 60000,
   port: process.env.PORT || 1338,
-  mongodbURI:
-    process.env.mongodbURI ||
-    "mongodb+srv://admin:ymsalesadmin@cluster0.zqbcv.mongodb.net/ymsales?retryWrites=true&w=majority", //"mongodb://localhost:27017/",
+  mongodbURI: process.env.mongodbURI || "mongodb://localhost:27017/", //"mongodb://localhost:27017/",
 };
 
 const mongoClient = new MongoClient(config.mongodbURI, {
@@ -24,6 +22,7 @@ mongoClient.connect(async function (err, client) {
   const db = client.db("ymsales");
   const productsCollection = db.collection("products");
   const categoriesCollection = db.collection("categories");
+  //const codesCollection = db.collection("codes");
 
   const app = express();
   app.use(bodyParser.json());
@@ -32,10 +31,11 @@ mongoClient.connect(async function (err, client) {
     const productsInDB = await productsCollection.find({}).toArray();
     const productsInDBIds = new Set(productsInDB.map((product) => product.id));
     const productsToInsert = [];
+    //const codes = await codesCollection.find({});
     for (const code of codes) {
       for (const prodcutID of code.products) {
         if (!productsInDBIds.has(prodcutID)) {
-          productsToInsert.push({ id: prodcutID, code: code.code });
+          productsToInsert.push({ id: prodcutID });
           productsInDBIds.add(prodcutID);
         }
       }
@@ -92,6 +92,34 @@ mongoClient.connect(async function (err, client) {
     );
   });
 
+  app.get("/products", async (req, res) => {
+    const products = await productsCollection.find({}).toArray();
+    let result = {};
+    for (const code of codes) {
+      const codeProducts = new Set(code.products);
+      for (const product of products.filter(
+        (product) => product.price && product.price >= 0
+      )) {
+        if (codeProducts.has(product.id) && !result[product.id]) {
+          result[product.id] = {
+            id: product.id,
+            name: product.name,
+            img: product.img,
+            category: product.category,
+            old_price: product.price,
+            price: Math.floor(product.price * (1 - code.discount)),
+            code: code.code,
+          };
+        }
+      }
+    }
+    let resultArr = [];
+    for (product in result) {
+      resultArr.push(result[product]);
+    }
+    res.json(resultArr);
+  });
+
   app.post("/category", async (req, res) => {
     const { category, categoryLink } = req.body;
     await categoriesCollection.updateOne(
@@ -101,6 +129,25 @@ mongoClient.connect(async function (err, client) {
     );
     res.status(200).send("");
   });
+
+  app.get("/categories", async (req, res) => {
+    const categories = await categoriesCollection.find({}).toArray();
+    let categoriesMap = {};
+    for (const category of categories) {
+      categoriesMap[category.subCategory] = category.categoryLink;
+    }
+    res.json(categoriesMap);
+  });
+
+  // app.post("/code", (req, res) => {
+  //   const { code, discount, products } = req.body;
+  //   codesCollection.updateOne(
+  //     { code },
+  //     { $set: { discount, products } },
+  //     { upsert: true }
+  //   );
+  //   res.json(codes);
+  // });
 
   app.get("/codes", (req, res) => {
     res.json(codes);
