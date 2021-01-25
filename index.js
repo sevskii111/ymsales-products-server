@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const MongoClient = require("mongodb").MongoClient;
@@ -88,7 +90,16 @@ mongoClient.connect(async function (err, client) {
     res.send(await getNextProduct());
     await productsCollection.updateOne(
       { id },
-      { $set: { id, name, category, img, price, lastUpdate: Date.now() } }
+      {
+        $set: {
+          id,
+          name,
+          category,
+          img,
+          price,
+          lastUpdate: Date.now(),
+        },
+      }
     );
   });
 
@@ -138,16 +149,6 @@ mongoClient.connect(async function (err, client) {
     }
     res.json(categoriesMap);
   });
-
-  // app.post("/code", (req, res) => {
-  //   const { code, discount, products } = req.body;
-  //   codesCollection.updateOne(
-  //     { code },
-  //     { $set: { discount, products } },
-  //     { upsert: true }
-  //   );
-  //   res.json(codes);
-  // });
 
   app.get("/codes", (req, res) => {
     res.json(codes);
