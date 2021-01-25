@@ -24,16 +24,23 @@ mongoClient.connect(async function (err, client) {
   const db = client.db("ymsales");
   const productsCollection = db.collection("products");
   const categoriesCollection = db.collection("categories");
-  //const codesCollection = db.collection("codes");
+
+  const productsInCodes = [
+    ...codes.reduce(
+      (prev, curr) => new Set([...prev, ...curr.products]),
+      new Set()
+    ),
+  ];
 
   const app = express();
   app.use(bodyParser.json());
 
   async function init() {
-    const productsInDB = await productsCollection.find({}).toArray();
+    const productsInDB = await productsCollection
+      .find({ id: { $in: productsInCodes } })
+      .toArray();
     const productsInDBIds = new Set(productsInDB.map((product) => product.id));
     const productsToInsert = [];
-    //const codes = await codesCollection.find({});
     for (const code of codes) {
       for (const prodcutID of code.products) {
         if (!productsInDBIds.has(prodcutID)) {
@@ -57,7 +64,10 @@ mongoClient.connect(async function (err, client) {
     );
 
     const emptyProduct = await productsCollection.findOne({
-      id: { $nin: returnedProductsCache.map((product) => product.id) },
+      id: {
+        $nin: returnedProductsCache.map((product) => product.id),
+        $in: productsInCodes,
+      },
       lastUpdate: { $exists: false },
     });
     if (emptyProduct) {
@@ -69,7 +79,10 @@ mongoClient.connect(async function (err, client) {
     } else {
       const oldestProduct = await productsCollection
         .find({
-          id: { $nin: returnedProductsCache.map((product) => product.id) },
+          id: {
+            $nin: returnedProductsCache.map((product) => product.id),
+            $in: productsInCodes,
+          },
         })
         .sort({ lastUpdate: 1 })
         .limit(1);
@@ -104,7 +117,9 @@ mongoClient.connect(async function (err, client) {
   });
 
   app.get("/products", async (req, res) => {
-    const products = await productsCollection.find({}).toArray();
+    const products = await productsCollection
+      .find({ id: { $in: productsInCodes } })
+      .toArray();
     let result = {};
     for (const code of codes) {
       const codeProducts = new Set(code.products);
@@ -151,7 +166,7 @@ mongoClient.connect(async function (err, client) {
   });
 
   app.get("/codes", (req, res) => {
-    res.json(codes);
+    res.json(codes.sort((a, b) => b.discount - a.discount));
   });
 
   app.listen(config.port, (err) => {
