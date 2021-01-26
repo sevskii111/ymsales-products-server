@@ -23,6 +23,7 @@ mongoClient.connect(async function (err, client) {
   }
   const db = client.db("ymsales");
   const productsCollection = db.collection("products");
+  const productsArchiveCollection = db.collection("productsArchive");
   const categoriesCollection = db.collection("categories");
 
   const productsInCodes = [
@@ -38,9 +39,9 @@ mongoClient.connect(async function (err, client) {
   app.use(bodyParser.json());
 
   async function init() {
-    const productsInDB = await productsCollection
-      .find({ id: { $in: productsInCodes } })
-      .toArray();
+    await productsCollection.deleteMany({ id: { $nin: productsInCodes } });
+
+    const productsInDB = await productsCollection.find().toArray();
     const productsInDBIds = new Set(productsInDB.map((product) => product.id));
     const productsToInsert = [];
     for (const code of codes) {
@@ -66,7 +67,6 @@ mongoClient.connect(async function (err, client) {
     const emptyProduct = await productsCollection.findOne({
       id: {
         $nin: returnedProductsCache.map((product) => product.id),
-        $in: productsInCodes,
       },
       lastUpdate: { $exists: false },
     });
@@ -81,7 +81,6 @@ mongoClient.connect(async function (err, client) {
         .find({
           id: {
             $nin: returnedProductsCache.map((product) => product.id),
-            $in: productsInCodes,
           },
         })
         .sort({ lastUpdate: 1 })
@@ -93,6 +92,18 @@ mongoClient.connect(async function (err, client) {
       return oldestProduct.id;
     }
   }
+
+  app.listen(config.port, (err) => {
+    if (err) {
+      console.error(err);
+    } else {
+      console.log("Listening on 1338");
+    }
+  });
+
+  await init();
+
+  console.log("Ready!");
 
   app.get("/product", async (req, res) => {
     res.send(await getNextProduct());
@@ -170,14 +181,4 @@ mongoClient.connect(async function (err, client) {
   app.get("/codes", (req, res) => {
     res.json(codes);
   });
-
-  app.listen(config.port, (err) => {
-    if (err) {
-      console.error(err);
-    } else {
-      console.log("Listening on 1338");
-    }
-  });
-
-  await init();
 });
