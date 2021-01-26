@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const MongoClient = require("mongodb").MongoClient;
-const codes = require("./codes.js");
+const codes = require("./codes.js").sort((a, b) => b.discount - a.discount);
 
 const config = {
   cachedProductTimeout: process.env.cachedProductTimeout || 60000,
@@ -118,14 +118,16 @@ mongoClient.connect(async function (err, client) {
 
   app.get("/products", async (req, res) => {
     const products = await productsCollection
-      .find({ id: { $in: productsInCodes } })
+      .find({
+        id: { $in: productsInCodes },
+        lastUpdate: { $exists: true },
+        price: { $gt: 0 },
+      })
       .toArray();
     let result = {};
     for (const code of codes) {
       const codeProducts = new Set(code.products);
-      for (const product of products.filter(
-        (product) => product.price && product.price >= 0
-      )) {
+      for (const product of products) {
         if (codeProducts.has(product.id) && !result[product.id]) {
           result[product.id] = {
             id: product.id,
@@ -166,7 +168,7 @@ mongoClient.connect(async function (err, client) {
   });
 
   app.get("/codes", (req, res) => {
-    res.json(codes.sort((a, b) => b.discount - a.discount));
+    res.json(codes);
   });
 
   app.listen(config.port, (err) => {
