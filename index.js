@@ -54,8 +54,6 @@ mongoClient.connect(async function (err, client) {
     }
   }
 
-  await init();
-
   let returnedProductsCache = [];
   async function getNextProduct() {
     returnedProductsCache = returnedProductsCache.filter(
@@ -178,4 +176,6 @@ mongoClient.connect(async function (err, client) {
       console.log("Listening on 1338");
     }
   });
+
+  await init();
 });
