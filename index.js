@@ -32,6 +32,8 @@ mongoClient.connect(async function (err, client) {
     ),
   ];
 
+  console.log(productsInCodes.length);
+
   const app = express();
   app.use(bodyParser.json());
 
