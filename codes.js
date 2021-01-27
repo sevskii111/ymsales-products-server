@@ -1,4 +1,4 @@
-[
+module.exports = [
   {
     code: "CUT4",
     discount: 0.04,
