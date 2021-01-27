@@ -133,7 +133,6 @@ mongoClient.connect(async function (err, client) {
   app.get("/products", async (req, res) => {
     const products = await productsCollection
       .find({
-        id: { $in: productsInCodes },
         lastUpdate: { $exists: true },
         price: { $gt: 0 },
       })
