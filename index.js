@@ -77,14 +77,17 @@ mongoClient.connect(async function (err, client) {
       });
       return emptyProduct.id;
     } else {
-      const oldestProduct = await productsCollection
-        .find({
-          id: {
-            $nin: returnedProductsCache.map((product) => product.id),
-          },
-        })
-        .sort({ lastUpdate: 1 })
-        .limit(1);
+      const oldestProduct = (
+        await productsCollection
+          .find({
+            id: {
+              $nin: returnedProductsCache.map((product) => product.id),
+            },
+          })
+          .sort({ lastUpdate: 1 })
+          .limit(1)
+          .toArray()
+      )[0];
       returnedProductsCache.push({
         id: oldestProduct.id,
         timestamp: Date.now(),
