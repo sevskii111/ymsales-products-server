@@ -2,7 +2,9 @@ const fs = require("fs");
 
 const list = fs.readFileSync("./list.txt", "utf-8");
 
-const lines = list.split("\n").map((l) => l.trim());
+const lines = [...new Set(list.split("\n").map((l) => l.trim()))];
+fs.writeFileSync("./list.txt", lines.join("\n"));
+console.log(lines.length);
 
 let resultMap = {};
 
